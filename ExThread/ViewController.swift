@@ -15,7 +15,7 @@ class ViewController: UIViewController {
     
     Thread {
       self.completableDeferredSet.insert(1)
-      self.completableDeferredSet.await()
+      self.completableDeferredSet.await(timeoutSeconds: 3.3)
       print("2.대기 종료!")
     }
     .start()
@@ -46,8 +46,8 @@ final class CompletableDeferredSet<T: Hashable> {
     self.workSet.remove(job)
   }
   
-  func await() {
-    self.waitSemaphoreIfNeeded()
+  func await(timeoutSeconds: TimeInterval) {
+    self.waitSemaphoreIfNeeded(timeoutSeconds: timeoutSeconds)
   }
   
   private func signalSemaphoreIfNeeded() {
@@ -56,10 +56,11 @@ final class CompletableDeferredSet<T: Hashable> {
     self.semaphore.signal()
   }
   
-  private func waitSemaphoreIfNeeded() {
+  private func waitSemaphoreIfNeeded(timeoutSeconds: TimeInterval) {
     guard !self.canSignal else { return }
     self.canSignal.toggle()
-    self.semaphore.wait()
+    guard case .timedOut = self.semaphore.wait(timeout: .now() + timeoutSeconds) else { return }
+    self.canSignal.toggle()
   }
 }
 
